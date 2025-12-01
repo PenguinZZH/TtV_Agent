@@ -10,11 +10,13 @@ class StoryboardItem(TypedDict):
     visual_tags: List[str]      # 画面标签（用于转场判断）
     estimated_duration: float   # 预估时长(FAKE)
     
+
     # 以下字段在后续流程中填充
     audio_path: Optional[str]   # 生成的音频文件路径
     audio_duration: Optional[float]       # 实际音频时长
     image_path: Optional[str]   # 校验通过的图片路径
     video_path: Optional[str]   # 最终生成的视频片段路径
+    visual_extend_prompt: Optional[str] = None  # 阿里云的视频生成接口会自动优化传入的prompt
 
 class GraphState(TypedDict):
     """LangGraph 的全局状态"""

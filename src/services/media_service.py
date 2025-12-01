@@ -4,13 +4,18 @@ import time
 import requests
 import random
 import dashscope
+from http import HTTPStatus
+import dashscope
 
 from datetime import datetime
 from pathlib import Path, PurePosixPath
 from http import HTTPStatus
 from urllib.parse import urlparse, unquote
-from dashscope import ImageSynthesis
+from dashscope import ImageSynthesis, VideoSynthesis
 from dashscope.audio.tts_v2 import *
+
+from utils.tools import encode_image
+from utils.universal_prompt import video_gen_prompt, video_gen_bad_prompt
 
 # 获取当前时间并格式化
 time_str = datetime.now().strftime("%m-%d-%H-%M")
@@ -27,6 +32,10 @@ BOARD_IMG_DIR.mkdir(parents=True, exist_ok=True)
 
 VID_DIR = Path("data") / "video" / time_str
 VID_DIR.mkdir(parents=True, exist_ok=True)
+
+VIDEO_MODEL = os.getenv("VIDEO_MODEL_NAME")
+VIDEO_API_KEY = os.getenv("VIDEO_API_KEY")
+VIDEO_API_BASE = os.getenv("VIDEO_API_BASE")
 
 
 class MediaGenService:
@@ -78,10 +87,32 @@ class MediaGenService:
         # return self._create_mock_image(filename, color="green")
 
 
-    def image_to_video(self, image_path: str, motion_strength: float = 0.5) -> str:
+    def image_to_video(self, id: str, image_path: str, motion_strength: float = 0.5) -> str:
         """图生视频 (I2V)"""
         print(f"[MediaService] Generating Video from {image_path}...")
         time.sleep(2) # 模拟视频生成耗时
+
+        image_base = encode_image(image_path)
+        rsp = VideoSynthesis.call(
+            api_key=VIDEO_API_KEY,
+            prompt=video_gen_prompt,
+            img_url=image_base,
+            duration=10,
+            audio=True, # 自动配音
+            extend_prompt=True,
+            negative_prompt=video_gen_bad_prompt,
+        )
+        if rsp.status_code == HTTPStatus.OK:
+            print("video_url:", rsp.output.video_url)
+            video_url = rsp.output.video_url
+            visual_extend_prompt = rsp.output.actual_prompt
+            video_path = rf"{VID_DIR}/{id}.mp4"
+            with open(video_path, 'wb') as f:
+                f.write(requests.get(video_url).content)
+            return video_path, visual_extend_prompt
+        else:
+            print('Failed, status_code: %s, code: %s, message: %s' %
+                (rsp.status_code, rsp.code, rsp.message))
         
         filename = f"vid_{int(time.time())}_{random.randint(0,100)}.mp4"
         return self._create_mock_video(filename, duration=3)

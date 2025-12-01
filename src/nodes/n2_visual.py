@@ -34,9 +34,10 @@ def visual_node(state: GraphState) -> GraphState:
             
             if check_result['passed']:
                 # 3. 校验通过，生成视频
-                video_path = media_service.image_to_video(img_path, motion_strength=0.5)
+                video_path, visual_extend_prompt = media_service.image_to_video(id, img_path, motion_strength=0.5)
                 shot['image_path'] = img_path
                 shot['video_path'] = video_path
+                shot['visual_extend_prompt'] = visual_extend_prompt
                 break # 跳出重试循环
             else:
                 # 4. 失败，优化 Prompt 进行下一次尝试
@@ -51,6 +52,7 @@ def visual_node(state: GraphState) -> GraphState:
                 video_path = media_service.image_to_video(img_path, motion_strength=0.5)
                 shot['image_path'] = img_path
                 shot['video_path'] = video_path
+                shot['visual_extend_prompt'] = None
             else:
                 raise RuntimeError(f"视觉生成失败: Shot {shot['id']} 连续3次失败")
              
